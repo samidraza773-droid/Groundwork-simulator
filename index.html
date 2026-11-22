@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Granular Groundwork 3D - Ultra Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+        body {
+            overflow: hidden;
+            background: #0b1120;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* Top HUD */
+        #hud-top {
+            position: absolute;
+            top: 9px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+            gap: 6px;
+        }
+        .hud-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .hud-card {
+            background: rgba(11, 17, 32, 0.78);
+            backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(255, 255, 255, 0.18);
+            color: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 11.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.42);
+        }
+        .bar-wrap {
+            width: 58px;
+            height: 8px;
+            background: rgba(255,255,255,0.14);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #machine-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f97316, #facc15);
+            transition: width 0.1s;
+        }
+        #truck-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            transition: width 0.1s;
+        }
+        .btn-top {
+            background: rgba(11, 17, 32, 0.84);
+            backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(255,255,255,0.22);
+            color: #f8fafc;
+            padding: 7px 10px;
+            border-radius: 10px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.38);
+        }
+        .btn-top:active { transform: scale(0.95); }
+        #btn-switch {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border-color: #c4b5fd;
+        }
+        .btn-road.active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-color: #93c5fd;
+            box-shadow: 0 0 14px rgba(37, 99, 235, 0.75);
+        }
+
+        /* Toast */
+        #toast {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(11, 17, 32, 0.92);
+            border: 1.5px solid #facc15;
+            color: #fef08a;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s;
+            z-index: 15;
+            white-space: nowrap;
+        }
+
+        /* Bottom Controls */
+        #controls {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Driving Buttons */
+        .drive-pad {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .drive-btn {
+            width: 62px;
+            height: 62px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.68);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #f8fafc;
+            font-size: 21px;
+            font-weight: 800;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+            transition: transform 0.08s, background 0.1s;
+        }
+        .drive-btn span {
+            font-size: 8px;
+            letter-spacing: 0.5px;
+            opacity: 0.85;
+            margin-top: 1px;
+        }
+        .drive-btn.pressed, .drive-btn:active {
+            transform: scale(0.92);
+            background: rgba(245, 158, 11, 0.92);
+            border-color: #fef08a;
+            color: #090d16;
+        }
+
+        /* Bucket Joysticks */
+        .bucket-pad {
+            display: none;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .joystick-zone {
+            width: 114px;
+            height: 114px;
+            background: rgba(15, 23, 42, 0.42);
+            border: 2px solid rgba(255, 255, 255, 0.28);
+            border-radius: 50%;
+            position: relative;
+            backdrop-filter: blur(6px);
+            box-shadow: inset 0 0 18px rgba(0,0,0,0.35);
+        }
+        .joystick-label {
+            position: absolute;
+            top: -20px;
+            width: 100%;
+            text-align: center;
+            color: #f8fafc;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        }
+        .joystick-knob {
+            width: 44px;
+            height: 44px;
+            background: radial-gradient(circle at 30% 30%, #fde047, #d97706);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            top: 33px;
+            left: 33px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.55);
+        }
+
+        /* Center Action Buttons */
+        #center-actions {
+            display: flex;
+            gap: 7px;
+            pointer-events: auto;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .action-btn {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1.5px solid rgba(255,255,255,0.28);
+            background: rgba(15, 23, 42, 0.86);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            font-weight: 700;
+            font-size: 11.5px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+        }
+        .action-btn:active { transform: scale(0.94); }
+        #btn-mode {
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            border-color: #bae6fd;
+        }
+        #btn-bucket-side {
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+            border-color: #fef08a;
+            color: #090d16;
+        }
+        #btn-dump {
+            background: linear-gradient(135deg, #10b981, #047857);
+        }
+
+        #rotate-hint {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            color: #fff;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            text-align: center;
+            padding: 20px;
+        }
+        @media (orientation: portrait) {
+            #rotate-hint { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="rotate-hint">
+    <div style="font-size: 42px; margin-bottom: 12px;">📱🔄</div>
+    <h2>Phone ko Landscape (Horizontal) Karein</h2>
+    <p style="color:#94a3b8; margin-top:8px;">Best controls aur 3D view ke liye screen rotate karein.</p>
+</div>
+
+<div id="toast">Message</div>
+
+<div id="hud-top">
+    <div class="hud-group">
+        <div class="hud-card">
+            <span>🚜 Sand:</span>
+            <div class="bar-wrap"><div id="machine-fill"></div></div>
+            <span id="machine-pct">0%</span>
+        </div>
+        <div class="hud-card">
+            <span>🚛 Truck:</span>
+            <div class="bar-wrap"><div id="truck-fill"></div></div>
+            <span id="truck-pct">0%</span>
+        </div>
+    </div>
+
+    <div class="hud-group">
+        <button class="btn-top" id="btn-switch">🔄 Switch: TRUCK</button>
+        <button class="btn-top btn-road" id="btn-roller">🛣️ Road Leveler: OFF</button>
+        <button class="btn-top" id="btn-cam">🎥 Cam: MAIN</button>
+        <button class="btn-top" id="btn-reset">🔄 Reset</button>
+    </div>
+</div>
+
+<div id="controls">
+    <!-- LEFT CONTROLS -->
+    <div>
+        <div class="drive-pad" id="steer-pad">
+            <button class="drive-btn" id="btn-left">◀<span>LEFT</span></button>
+            <button class="drive-btn" id="btn-right">▶<span>RIGHT</span></button>
+        </div>
+        <div class="bucket-pad" id="bucket-left-pad">
+            <div class="joystick-zone" id="joy-left">
+                <div class="joystick-label" id="lbl-left">FRONT ARM UP/DN</div>
+                <div class="joystick-knob" id="knob-left"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CENTER ACTION BUTTONS -->
+    <div id="center-actions">
+        <button class="action-btn" id="btn-bucket-side">🪣 ARM: FRONT</button>
+        <button class="action-btn" id="btn-mode">⚙️ MODE: DRIVE</button>
+        <button class="action-btn" id="btn-dump">⬇️ DUMP SAND</button>
+    </div>
+
+    <!-- RIGHT CONTROLS -->
+    <div>
+        <div class="drive-pad" id="throttle-pad">
+            <button class="drive-btn" id="btn-fwd">▲<span>FWD</span></button>
+            <button class="drive-btn" id="btn-rev">▼<span>BACK</span></button>
+        </div>
+        <div class="bucket-pad" id="bucket-right-pad">
+            <div class="joystick-zone" id="joy-right">
+                <div class="joystick-label" id="lbl-right">FRONT TILT</div>
+                <div class="joystick-knob" id="knob-right"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+    // --- TOAST ---
+    const toastEl = document.getElementById('toast');
+    let toastTimer = null;
+    function showToast(msg) {
+        toastEl.innerText = msg;
+        toastEl.style.opacity = '1';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toastEl.style.opacity = '0'; }, 2400);
+    }
+
+    // --- PROCEDURAL HIGH-RES GRANULAR & ASPHALT TEXTURES ---
+    function createGranularTexture(size = 512, repeatX = 180, repeatY = 180) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ece8df';
+        ctx.fillRect(0, 0, size, size);
+
+        for (let i = 0; i < 22000; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const r = Math.random() * 2.2 + 0.5;
+            const shade = Math.random();
+            if (shade < 0.42) {
+                ctx.fillStyle = 'rgba(22, 18, 12, 0.34)';
+            } else if (shade < 0.78) {
+                ctx.fillStyle = 'rgba(255, 252, 244, 0.34)';
+            } else {
+                ctx.fillStyle = 'rgba(95, 75, 50, 0.28)';
+            }
+            ctx.fillRect(x, y, r, r);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(repeatX, repeatY);
+        tex.anisotropy = 4;
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    function createWaterNormalTexture(size = 256) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 3500; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const w = 4 + Math.random() * 14;
+            const h = 1.5 + Math.random() * 3;
+            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(165, 165, 255, 0.22)' : 'rgba(95, 95, 255, 0.22)';
+            ctx.fillRect(x, y, w, h);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(45, 45);
+        return tex;
+    }
+
+    const terrainDetailMap = createGranularTexture(512, 195, 195);
+    const terrainBumpMap = createGranularTexture(512, 195, 195);
+    const waterRippleTex = createWaterNormalTexture(256);
+
+    function addOutline(mesh, scaleFactor = 1.022, color = 0x13171d) {
+        const outlineMat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+        const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
+        outlineMesh.scale.multiplyScalar(scaleFactor);
+        mesh.add(outlineMesh);
+        return mesh;
+    }
+
+    // --- 1. SCENE, ATMOSPHERIC SKY, SUN & PBR LIGHTING ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xbcd9f0, 0.00145);
+
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.2, 1450);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild(renderer.domElement);
+
+    // Rich Sky Gradient Dome
+    const skyCanvas = document.createElement('canvas');
+    skyCanvas.width = 64;
+    skyCanvas.height = 512;
+    const sCtx = skyCanvas.getContext('2d');
+    const skyGrad = sCtx.createLinearGradient(0, 0, 0, 512);
+    skyGrad.addColorStop(0.0, '#1e3a8a');
+    skyGrad.addColorStop(0.28, '#2563eb');
+    skyGrad.addColorStop(0.55, '#60a5fa');
+    skyGrad.addColorStop(0.78, '#bae6fd');
+    skyGrad.addColorStop(1.0, '#fef3c7');
+    sCtx.fillStyle = skyGrad;
+    sCtx.fillRect(0, 0, 64, 512);
+    const skyTex = new THREE.CanvasTexture(skyCanvas);
+    const skyDome = new THREE.Mesh(
+        new THREE.SphereGeometry(850, 32, 24),
+        new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false })
+    );
+    scene.add(skyDome);
+
+    // Generate Realistic Reflection Environment Map for Chrome, Glass & Water
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const envScene = new THREE.Scene();
+    const envSky = new THREE.Mesh(
+        new THREE.SphereGeometry(50, 24, 16),
+        new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide })
+    );
+    const envGround = new THREE.Mesh(
+        new THREE.CircleGeometry(50, 24).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x4b7031 })
+    );
+    envGround.position.y = -2;
+    envScene.add(envSky, envGround);
+    const envRT = pmremGenerator.fromScene(envScene);
+    scene.environment = envRT.texture;
+    pmremGenerator.dispose();
+
+    // Glowing Sun & Volumetric Clouds
+    const sunGroup = new THREE.Group();
+    const sunCore = new THREE.Mesh(
+        new THREE.SphereGeometry(18, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xfffbeb, fog: false })
+    );
+    const sunHalo = new THREE.Mesh(
+        new THREE.SphereGeometry(32, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.26, fog: false })
+    );
+    sunGroup.add(sunCore, sunHalo);
+    sunGroup.position.set(220, 290, 160);
+    scene.add(sunGroup);
+
+    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: true });
+    const cloudsGroup = new THREE.Group();
+    for (let c = 0; c < 22; c++) {
+        const cloud = new THREE.Group();
+        const puffs = 3 + (c % 3);
+        for (let p = 0; p < puffs; p++) {
+            const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(9 + Math.random() * 8, 1), cloudMat);
+            puff.scale.set(1.5, 0.55, 1.1);
+            puff.position.set((p - 1) * 11, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6);
+            cloud.add(puff);
+        }
+        cloud.position.set(
+            (Math.random() - 0.5) * 760,
+            105 + Math.random() * 45,
+            (Math.random() - 0.5) * 760
+        );
+        cloudsGroup.add(cloud);
+    }
+    scene.add(cloudsGroup);
+
+    // Three-Point Cinematic Lighting
+    scene.add(new THREE.HemisphereLight(0xe0f2fe, 0x3f5726, 0.92));
+
+    const rimLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    rimLight.position.set(-120, 60, -110);
+    scene.add(rimLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff4d6, 1.75);
+    dirLight.position.set(85, 125, 65);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 15;
+    dirLight.shadow.camera.far = 360;
+    const sBound = 92;
+    dirLight.shadow.camera.left = -sBound;
+    dirLight.shadow.camera.right = sBound;
+    dirLight.shadow.camera.top = sBound;
+    dirLight.shadow.camera.bottom = -sBound;
+    dirLight.shadow.bias = -0.00035;
+    scene.add(dirLight);
+    scene.add(dirLight.target);
+
+    // --- 2. 3X EXPANDED TERRAIN + 5 HILLS (1 ORIGINAL + 4 GIANT 3X HILLS) ---
+    const TERRAIN_SIZE = 660; // 3x larger than original 220
+    const SEGMENTS = 300;     // Crisp vertex resolution & high 60fps mobile speed
+    const MAP_LIMIT = 315;
+    const WATER_LEVEL = -0.75;
+
+    const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEGMENTS, SEGMENTS);
+    terrainGeo.rotateX(-Math.PI / 2);
+
+    const posAttr = terrainGeo.attributes.position;
+    const vertexCount = posAttr.count;
+    const colors = new Float32Array(vertexCount * 3);
+    const roadMask = new Float32Array(vertexCount);
+    const caveMask = new Float32Array(vertexCount);
+    const disturbedSandMask = new Float32Array(vertexCount);
+
+    const colGrassBright = new THREE.Color(0x569634);
+    const colGrassDeep = new THREE.Color(0x386b22);
+    const colHillSlope = new THREE.Color(0x4c852e);
+    const colHillRock = new THREE.Color(0x646c78);
+    const colHillPeak = new THREE.Color(0x949ba6);
+    const colSandBank = new THREE.Color(0xd2b47c);
+    const colFreshSandLight = new THREE.Color(0xc28e50);
+    const colFreshSandDark = new THREE.Color(0x7e5328);
+    const colDeepClay = new THREE.Color(0x4e2d17);
+    const colBedrock = new THREE.Color(0x4f555e);
+    const colRoad = new THREE.Color(0x272c35);
+    const colCaveDark = new THREE.Color(0x0c0e12);
+
+    const vertexGrain = new Float32Array(vertexCount);
+    for (let i = 0; i < vertexCount; i++) {
+        vertexGrain[i] = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+        if (vertexGrain[i] < 0) vertexGrain[i] += 1;
+    }
+
+    // Original Hill + 4 Giant Hills (3x Radius = 132, 3x Height = 55.5)
+    const HILLS = [
+        { x: -36,  z: -34,  radius: 44,  maxH: 18.5 },  // Original Hill
+        { x: -165, z: -175, radius: 132, maxH: 55.5 },  // Giant Hill 1 (NW)
+        { x: 185,  z: -160, radius: 132, maxH: 55.5 },  // Giant Hill 2 (NE)
+        { x: -170, z: 175,  radius: 132, maxH: 55.5 },  // Giant Hill 3 (SW)
+        { x: 180,  z: 175,  radius: 132, maxH: 55.5 }   // Giant Hill 4 (SE)
+    ];
+
+    function getRiverCenterX(z) {
+        return 26 + Math.sin(z * 0.024) * 16.0;
+    }
+
+    function isInitialRoad(x, z) {
+        return Math.abs(x + 8) < 4.2 && z > -290 && z < 290;
+    }
+
+    function initTerrain() {
+        for (let i = 0; i < vertexCount; i++) {
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+
+            let h = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 1.45 + Math.cos(x * 0.08 - z * 0.07) * 0.4;
+
+            for (let k = 0; k < HILLS.length; k++) {
+                const hill = HILLS[k];
+                const distHill = Math.hypot(x - hill.x, z - hill.z);
+                if (distHill < hill.radius) {
+                    const t = 1 - distHill / hill.radius;
+                    const ridgeNoise = 1 + Math.sin(x * 0.06 + k) * Math.cos(z * 0.06 - k) * 0.08;
+                    h += Math.pow(t, 1.45) * hill.maxH * ridgeNoise;
+                }
+            }
+
+            const riverX = getRiverCenterX(z);
+            const distRiver = Math.abs(x - riverX);
+            if (distRiver < 14.0) {
+                const rFactor = Math.cos((distRiver / 14.0) * (Math.PI / 2));
+                h = THREE.MathUtils.lerp(h, -2.7, rFactor * rFactor);
+            }
+
+            if (isInitialRoad(x, z)) {
+                h = THREE.MathUtils.lerp(h, 0.0, 0.9);
+                roadMask[i] = 1;
+            } else {
+                roadMask[i] = 0;
+            }
+
+            caveMask[i] = 0;
+            disturbedSandMask[i] = 0;
+            posAttr.setY(i, h);
+        }
+        updateTerrainVisuals();
+    }
+
+    function applyVertexColor(i, tempCol, sandGrainCol) {
+        const x = posAttr.getX(i);
+        const y = posAttr.getY(i);
+        const z = posAttr.getZ(i);
+        const g = vertexGrain[i];
+
+        if (roadMask[i] > 0.5 && y >= WATER_LEVEL - 0.1) {
+            tempCol.copy(colRoad);
+            tempCol.offsetHSL(0, 0, (g - 0.5) * 0.04);
+        } else if (disturbedSandMask[i] > 0.05) {
+            sandGrainCol.lerpColors(colFreshSandDark, colFreshSandLight, g);
+            if (y < -1.8) sandGrainCol.lerp(colBedrock, 0.45);
+            tempCol.copy(sandGrainCol);
+        } else if (y < -1.95) {
+            tempCol.copy(colBedrock);
+        } else if (y < WATER_LEVEL + 0.28) {
+            tempCol.lerpColors(colDeepClay, colSandBank, Math.max(0, (y + 1.95) / 1.48));
+        } else if (y > 26.0) {
+            const peakMix = Math.min(1, (y - 26.0) / 22.0);
+            tempCol.lerpColors(colHillRock, colHillPeak, peakMix);
+            tempCol.offsetHSL(0, 0, (g - 0.5) * 0.05);
+        } else if (y > 8.5) {
+            const rockMix = Math.min(1, (y - 8.5) / 14.0);
+            tempCol.lerpColors(colHillSlope, colHillRock, rockMix);
+        } else if (y > 2.2) {
+            const hillMix = Math.min(1, (y - 2.2) / 6.3);
+            tempCol.lerpColors(colGrassBright, colHillSlope, hillMix);
+        } else {
+            const patch = (Math.sin(x * 0.09) * Math.cos(z * 0.09) + 1) * 0.5;
+            tempCol.lerpColors(colGrassDeep, colGrassBright, patch * 0.78);
+        }
+
+        if (caveMask[i] > 0.01) {
+            tempCol.lerp(colCaveDark, Math.min(0.94, caveMask[i]));
+        }
+
+        colors[i * 3] = tempCol.r;
+        colors[i * 3 + 1] = tempCol.g;
+        colors[i * 3 + 2] = tempCol.b;
+    }
+
+    function updateTerrainVisuals() {
+        const tempCol = new THREE.Color();
+        const sandGrainCol = new THREE.Color();
+        for (let i = 0; i < vertexCount; i++) {
+            applyVertexColor(i, tempCol, sandGrainCol);
+        }
+        terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        terrainGeo.computeVertexNormals();
+        posAttr.needsUpdate = true;
+    }
+
+    const terrainMat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        map: terrainDetailMap,
+        bumpMap: terrainBumpMap,
+        bumpScale: 0.14,
+        roughness: 0.88,
+        metalness: 0.04
+    });
+    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+    terrainMesh.receiveShadow = true;
+    scene.add(terrainMesh);
+
+    // 3x Extended Road Center Dashes
+    const roadLinesGroup = new THREE.Group();
+    scene.add(roadLinesGroup);
+    const dashGeo = new THREE.PlaneGeometry(0.24, 2.8);
+    dashGeo.rotateX(-Math.PI / 2);
+    const dashMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.82 });
+    for (let rz = -280; rz <= 280; rz += 6.5) {
+        const dash = new THREE.Mesh(dashGeo, dashMat);
+        dash.position.set(-8, 0.035, rz);
+        roadLinesGroup.add(dash);
+    }
+
+    // Glossy Reflective Animated River Water
+    const waterMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 64, 64).rotateX(-Math.PI / 2),
+        new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            emissive: 0x0369a1,
+            emissiveIntensity: 0.22,
+            bumpMap: waterRippleTex,
+            bumpScale: 0.06,
+            roughness: 0.08,
+            metalness: 0.82,
+            transparent: true,
+            opacity: 0.82
+        })
+    );
+    waterMesh.position.y = WATER_LEVEL;
+    scene.add(waterMesh);
+
+    const outerGround = new THREE.Mesh(
+        new THREE.RingGeometry(328, 950, 64).rotateX(-Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x386b22, roughness: 0.95 })
+    );
+    outerGround.position.y = -0.35;
+    scene.add(outerGround);
+
+    // Trees & Boulders Across 3x Expanded Map
+    const propsGroup = new THREE.Group();
+    scene.add(propsGroup);
+
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x52321c, roughness: 0.9 });
+    const pineMat = new THREE.MeshStandardMaterial({ color: 0x2a6624, roughness: 0.78 });
+    const leafyMat = new THREE.MeshStandardMaterial({ color: 0x468c2b, roughness: 0.76 });
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, bumpMap: terrainBumpMap, bumpScale: 0.15, roughness: 0.88 });
+
+    function getTerrainHeight(wx, wz) {
+        const half = TERRAIN_SIZE / 2;
+        const gx = Math.round(((wx + half) / TERRAIN_SIZE) * SEGMENTS);
+        const gz = Math.round(((wz + half) / TERRAIN_SIZE) * SEGMENTS);
+        if (gx < 0 || gx > SEGMENTS || gz < 0 || gz > SEGMENTS) return 0;
+        return posAttr.getY(gz * (SEGMENTS + 1) + gx);
+    }
+
+    function buildTreesAndRocks() {
+        while (propsGroup.children.length > 0) propsGroup.remove(propsGroup.children[0]);
+
+        for (let i = 0; i < 165; i++) {
+            const tx = (Math.random() - 0.5) * 600;
+            const tz = (Math.random() - 0.5) * 600;
+
+            if (Math.abs(tx + 8) < 8.5) continue;
+            if (Math.hypot(tx + 8, tz - 12) < 22) continue;
+
+            const h = getTerrainHeight(tx, tz);
+            if (h < WATER_LEVEL + 0.35 || h > 16.0) continue;
+
+            if (i % 5 === 0) {
+                const rock = addOutline(new THREE.Mesh(new THREE.DodecahedronGeometry(1.1 + Math.random() * 1.4, 1), rockMat), 1.03);
+                rock.scale.set(1.2, 0.75, 1.0);
+                rock.rotation.set(Math.random(), Math.random(), Math.random());
+                rock.position.set(tx, h + 0.35, tz);
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                propsGroup.add(rock);
+                continue;
+            }
+
+            const tree = new THREE.Group();
+            const trunk = addOutline(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.38, 2.3, 8), trunkMat), 1.04);
+            trunk.position.y = 1.15;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            if (i % 2 === 0) {
+                [2.9, 4.3, 5.5].forEach((py, idx) => {
+                    const rad = 1.95 - idx * 0.36;
+                    const cone = addOutline(new THREE.Mesh(new THREE.ConeGeometry(rad, 2.4, 8), pineMat), 1.03);
+                    cone.position.y = py;
+                    cone.castShadow = true;
+                    tree.add(cone);
+                });
+            } else {
+                const puff1 = addOutline(new THREE.Mesh(new THREE.DodecahedronGeometry(1.8, 1), leafyMat), 1.03);
+                puff1.position.y = 3.3;
+                puff1.castShadow = true;
+                const puff2 = addOutline(new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), leafyMat), 1.03);
+                puff2.position.set(0.7, 4.2, 0.4);
+                puff2.castShadow = true;
+                tree.add(puff1, puff2);
+            }
+
+            tree.scale.setScalar(0.9 + Math.random() * 0.65);
+            tree.position.set(tx, h - 0.1, tz);
+            propsGroup.add(tree);
+        }
+    }
+
+    initTerrain();
+    buildTreesAndRocks();
+
+    // --- PBR MATERIALS ---
+    const matLoaderYellow = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.28, metalness: 0.28 });
+    const matLoaderDark = new THREE.MeshStandardMaterial({ color: 0x1f242b, roughness: 0.42, metalness: 0.62 });
+    const matBucketGrey = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.46, metalness: 0.55 });
+    const matChrome = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.1, metalness: 0.95 });
+    const matGlass = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.08, metalness: 0.9, transparent: true, opacity: 0.72 });
+    const matTire = new THREE.MeshStandardMaterial({ color: 0x161618, roughness: 0.85, metalness: 0.1 });
+    const matHeadlight = new THREE.MeshStandardMaterial({ color: 0xfef9c3, emissive: 0xfef08a, emissiveIntensity: 1.2 });
+    const matBeacon = new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xf97316, emissiveIntensity: 1.4 });
+    const matTruckWhite = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.26, metalness: 0.24 });
+    const matTruckRed = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.34, metalness: 0.32 });
+    const matSand = new THREE.MeshStandardMaterial({ color: 0xa37039, bumpMap: terrainBumpMap, bumpScale: 0.1, roughness: 0.94 });
+    const matSandDark = new THREE.MeshStandardMaterial({ color: 0x7a4f26, bumpMap: terrainBumpMap, bumpScale: 0.1, roughness: 0.94 });
+
+    // --- 3. PURE PROCEDURAL ARTICULATED YELLOW LOADER (GLB REMOVED) ---
+    const machine = new THREE.Group();
+    scene.add(machine);
+
+    const chassis = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.75, 3.6), matLoaderDark), 1.022);
+    chassis.position.set(0, 0.98, 0);
+    chassis.castShadow = true;
+    machine.add(chassis);
+
+    const hood = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.35, 1.15, 1.8), matLoaderYellow), 1.022);
+    hood.position.set(0, 1.52, -0.85);
+    hood.castShadow = true;
+    machine.add(hood);
+
+    // Front Radiator Grille & Engine Vents
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.78, 0.08), matLoaderDark);
+    grille.position.set(0, 1.48, -1.76);
+    machine.add(grille);
+
+    const cabGlass = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.35, 1.45), matGlass);
+    cabGlass.position.set(0, 2.45, 0.35);
+    cabGlass.castShadow = true;
+    machine.add(cabGlass);
+
+    // Cab Pillars & Driver Seat
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.75, 0.6), matLoaderDark);
+    seat.position.set(0, 2.15, 0.3);
+    machine.add(seat);
+
+    const cabRoof = addOutline(new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.16, 1.64), matLoaderYellow), 1.022);
+    cabRoof.position.set(0, 3.16, 0.35);
+    cabRoof.castShadow = true;
+    machine.add(cabRoof);
+
+    // Rotating Safety Beacon on Roof
+    const beaconMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.2, 12), matBeacon);
+    beaconMesh.position.set(0, 3.32, 0.35);
+    machine.add(beaconMesh);
+
+    const exhaust = addOutline(new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 1.05, 10), matLoaderDark), 1.05);
+    exhaust.position.set(0.85, 2.42, -1.15);
+    exhaust.castShadow = true;
+    machine.add(exhaust);
+
+    [-0.75, 0.75].forEach(hx => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.1), matHeadlight);
+        hl.position.set(hx, 1.25, 1.82);
+        machine.add(hl);
+    });
+
+    const wheelPivots = [];
+    const spinWheels = [];
+    const mWheelCoords = [
+        [-1.36, 1.45, true], [1.36, 1.45, true],
+        [-1.36, -1.45, false], [1.36, -1.45, false]
+    ];
+    mWheelCoords.forEach(([wx, wz, isSteer]) => {
+        const sPivot = new THREE.Group();
+        sPivot.position.set(wx, 0.76, wz);
+        const spinG = new THREE.Group();
+
+        const tire = addOutline(new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.6, 24), matTire), 1.02);
+        tire.rotation.z = Math.PI / 2;
+        tire.castShadow = true;
+
+        const yHub = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.63, 18), matLoaderYellow);
+        yHub.rotation.z = Math.PI / 2;
+
+        const dHub = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.65, 14), matChrome);
+        dHub.rotation.z = Math.PI / 2;
+
+        spinG.add(tire, yHub, dHub);
+        sPivot.add(spinG);
+        machine.add(sPivot);
+
+        spinWheels.push(spinG);
+        if (isSteer) wheelPivots.push(sPivot);
+    });
+
+    // Articulated Front Loader Arm & Bucket
+    const frontArmPivot = new THREE.Group();
+    frontArmPivot.position.set(0, 1.05, 1.65);
+    machine.add(frontArmPivot);
+
+    [-0.92, 0.92].forEach(ax => {
+        const fArm = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 2.15), matLoaderYellow), 1.03);
+        fArm.position.set(ax, 0.2, 0.98);
+        fArm.rotation.x = -0.18;
+        fArm.castShadow = true;
+
+        // Chrome Hydraulic Piston
+        const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.35, 10), matChrome);
+        piston.position.set(ax, 0.52, 0.75);
+        piston.rotation.x = Math.PI / 2 - 0.32;
+        frontArmPivot.add(fArm, piston);
+    });
+
+    const frontBucketPivot = new THREE.Group();
+    frontBucketPivot.position.set(0, 0.02, 1.98);
+    frontArmPivot.add(frontBucketPivot);
+
+    const frontBucketGroup = new THREE.Group();
+    frontBucketGroup.position.set(0, -0.22, 0.5);
+    frontBucketPivot.add(frontBucketGroup);
+
+    const fbBack = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.65, 0.98, 0.15), matBucketGrey), 1.022);
+    fbBack.position.set(0, 0.22, -0.42);
+    fbBack.castShadow = true;
+    const fbBottom = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.65, 0.15, 1.15), matBucketGrey), 1.022);
+    fbBottom.position.set(0, -0.24, 0.1);
+    fbBottom.castShadow = true;
+    const fbLeft = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.98, 1.15), matBucketGrey), 1.025);
+    fbLeft.position.set(-1.25, 0.22, 0.1);
+    fbLeft.castShadow = true;
+    const fbRight = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.98, 1.15), matBucketGrey), 1.025);
+    fbRight.position.set(1.25, 0.22, 0.1);
+    fbRight.castShadow = true;
+    frontBucketGroup.add(fbBack, fbBottom, fbLeft, fbRight);
+
+    // Bucket Cutting Teeth
+    for (let tx = -1.0; tx <= 1.0; tx += 0.5) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), matChrome);
+        tooth.position.set(tx, -0.25, 0.74);
+        frontBucketGroup.add(tooth);
+    }
+
+    const frontSandWave = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45, 1), matSand);
+    frontSandWave.scale.set(2.4, 0.65, 0.85);
+    frontSandWave.position.set(0, -0.15, 0.72);
+    frontSandWave.visible = false;
+    frontBucketGroup.add(frontSandWave);
+
+    // Articulated Rear Excavator Arm & Bucket
+    const rearSwingPivot = new THREE.Group();
+    rearSwingPivot.position.set(0, 1.15, -1.75);
+    machine.add(rearSwingPivot);
+
+    const rearBoomPivot = new THREE.Group();
+    rearSwingPivot.add(rearBoomPivot);
+
+    const rBoom = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.44, 2.55), matLoaderYellow), 1.03);
+    rBoom.position.set(0, 0.65, -1.15);
+    rBoom.rotation.x = 0.48;
+    rBoom.castShadow = true;
+    rearBoomPivot.add(rBoom);
+
+    const rearStickPivot = new THREE.Group();
+    rearStickPivot.position.set(0, 1.25, -2.25);
+    rearBoomPivot.add(rearStickPivot);
+
+    const rStick = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.95, 0.32), matLoaderYellow), 1.03);
+    rStick.position.set(0, -0.82, -0.15);
+    rStick.rotation.x = 0.16;
+    rStick.castShadow = true;
+    rearStickPivot.add(rStick);
+
+    const rearBucketPivot = new THREE.Group();
+    rearBucketPivot.position.set(0, -1.75, -0.32);
+    rearStickPivot.add(rearBucketPivot);
+
+    const rearBucketGroup = new THREE.Group();
+    rearBucketGroup.position.set(0, -0.18, -0.22);
+    rearBucketPivot.add(rearBucketGroup);
+
+    const rbBack = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.62, 0.12), matBucketGrey), 1.025);
+    rbBack.position.set(0, 0.04, 0.28);
+    rbBack.castShadow = true;
+    const rbBottom = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 0.72), matBucketGrey), 1.025);
+    rbBottom.position.set(0, -0.24, -0.04);
+    rbBottom.castShadow = true;
+    const rbLeft = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.62, 0.72), matLoaderYellow), 1.025);
+    rbLeft.position.set(-0.43, 0.04, -0.04);
+    const rbRight = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.62, 0.72), matLoaderYellow), 1.025);
+    rbRight.position.set(0.43, 0.04, -0.04);
+    rearBucketGroup.add(rbBack, rbBottom, rbLeft, rbRight);
+
+    const bucketSoilGroup = new THREE.Group();
+    const clump1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45, 1), matSand);
+    const clump2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.36, 1), matSandDark);
+    clump2.position.set(0.32, -0.05, 0.05);
+    const clump3 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.36, 1), matSandDark);
+    clump3.position.set(-0.32, -0.05, -0.05);
+    bucketSoilGroup.add(clump1, clump2, clump3);
+    bucketSoilGroup.scale.set(1, 0.01, 1);
+    frontBucketGroup.add(bucketSoilGroup);
+
+    const tipMarker = new THREE.Mesh(
+        new THREE.RingGeometry(0.45, 0.72, 24),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.78 })
+    );
+    tipMarker.rotation.x = -Math.PI / 2;
+    scene.add(tipMarker);
+
+    // --- 4. DUMP TRUCK ---
+    const truck = new THREE.Group();
+    scene.add(truck);
+
+    const truckChassis = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.45, 6.8), matLoaderDark), 1.02);
+    truckChassis.position.set(0, 0.88, 0);
+    truckChassis.castShadow = true;
+    truck.add(truckChassis);
+
+    const truckFrontPivots = [];
+    const truckSpinWheels = [];
+    const tWheelCoords = [
+        [-1.25, 2.25, true], [1.25, 2.25, true],
+        [-1.28, -1.35, false], [1.28, -1.35, false],
+        [-1.28, -2.55, false], [1.28, -2.55, false]
+    ];
+    tWheelCoords.forEach(([wx, wz, isSteer]) => {
+        const sPivot = new THREE.Group();
+        sPivot.position.set(wx, 0.62, wz);
+        const spinG = new THREE.Group();
+
+        const tire = addOutline(new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.48, 22), matTire), 1.02);
+        tire.rotation.z = Math.PI / 2;
+        tire.castShadow = true;
+
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.5, 16), matChrome);
+        rim.rotation.z = Math.PI / 2;
+
+        spinG.add(tire, rim);
+        sPivot.add(spinG);
+        truck.add(sPivot);
+
+        truckSpinWheels.push(spinG);
+        if (isSteer) truckFrontPivots.push(sPivot);
+    });
+
+    const truckCab = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.45, 1.85, 1.95), matTruckWhite), 1.02);
+    truckCab.position.set(0, 1.98, 2.3);
+    truckCab.castShadow = true;
+    truck.add(truckCab);
+
+    const truckGlass = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.82, 0.12), matGlass);
+    truckGlass.position.set(0, 2.24, 3.26);
+    truck.add(truckGlass);
+
+    [-0.9, 0.9].forEach(hx => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.1), matHeadlight);
+        hl.position.set(hx, 1.35, 3.3);
+        truck.add(hl);
+    });
+
+    const bedPivot = new THREE.Group();
+    bedPivot.position.set(0, 1.15, -2.85);
+    truck.add(bedPivot);
+
+    const bedFloor = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.2, 4.3), matTruckRed), 1.02);
+    bedFloor.position.set(0, 0.1, 2.0);
+    bedFloor.castShadow = true;
+    const bedLeft = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 4.3), matTruckRed), 1.025);
+    bedLeft.position.set(-1.22, 0.65, 2.0);
+    bedLeft.castShadow = true;
+    const bedRight = addOutline(new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 4.3), matTruckRed), 1.025);
+    bedRight.position.set(1.22, 0.65, 2.0);
+    bedRight.castShadow = true;
+    const bedFront = addOutline(new THREE.Mesh(new THREE.BoxGeometry(2.55, 1.35, 0.18), matTruckRed), 1.025);
+    bedFront.position.set(0, 0.75, 4.1);
+    bedFront.castShadow = true;
+    bedPivot.add(bedFloor, bedLeft, bedRight, bedFront);
+
+    const truckSoilGroup = new THREE.Group();
+    truckSoilGroup.position.set(0, 0.25, 2.0);
+    const tPile1 = new THREE.Mesh(new THREE.ConeGeometry(1.18, 1.05, 9), matSand);
+    tPile1.position.set(0, 0.45, -0.7);
+    const tPile2 = new THREE.Mesh(new THREE.ConeGeometry(1.18, 1.1, 9), matSandDark);
+    tPile2.position.set(0, 0.48, 0.75);
+    truckSoilGroup.add(tPile1, tPile2);
+    truckSoilGroup.scale.set(1, 0.01, 1);
+    bedPivot.add(truckSoilGroup);
+
+    // --- 5. GRANULAR FALLING SAND & EXHAUST SMOKE PARTICLES ---
+    const sandClumps = [];
+    const clumpGeo = new THREE.DodecahedronGeometry(0.18, 0);
+
+    function spawnFallingSandStream(originPos, count, pileRadius, pileHeightAmount, spread = 0.9) {
+        const perClumpGain = pileHeightAmount / Math.max(1, count);
+        for (let i = 0; i < count; i++) {
+            const mat = i % 2 === 0 ? matSand : matSandDark;
+            const c = new THREE.Mesh(clumpGeo, mat);
+            const scale = 0.65 + Math.random() * 0.85;
+            c.scale.setScalar(scale);
+            c.position.copy(originPos);
+            c.position.x += (Math.random() - 0.5) * spread;
+            c.position.y += (Math.random() - 0.3) * 0.4;
+            c.position.z += (Math.random() - 0.5) * spread;
+
+            c.userData = {
+                vel: new THREE.Vector3(
+                    (Math.random() - 0.5) * 1.8,
+                    -0.5 - Math.random() * 1.5,
+                    (Math.random() - 0.5) * 1.8
+                ),
+                buildsPile: pileHeightAmount > 0,
+                pileRadius,
+                pileGain: perClumpGain,
+                life: 2.0
+            };
+            c.castShadow = true;
+            scene.add(c);
+            sandClumps.push(c);
+        }
+    }
+
+    const smokePuffs = [];
+    const smokeGeo = new THREE.DodecahedronGeometry(0.14, 0);
+    const smokeMat = new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.42 });
+
+    function spawnExhaustSmoke(worldPos) {
+        if (smokePuffs.length > 35) return;
+        const p = new THREE.Mesh(smokeGeo, smokeMat.clone());
+        p.position.copy(worldPos);
+        p.userData = {
+            vel: new THREE.Vector3((Math.random() - 0.5) * 0.4, 1.3 + Math.random() * 0.6, (Math.random() - 0.5) * 0.4),
+            life: 1.0
+        };
+        scene.add(p);
+        smokePuffs.push(p);
+    }
+
+    // --- 6. STATE & CONTROLS ---
+    let activeVehicle = 'MACHINE';
+    let controlMode = 'DRIVE';
+    let activeArm = 'FRONT';
+    let roadLevelerActive = false;
+    let machineSoil = 0;
+    let truckSoil = 0;
+    let truckBedAngle = 0;
+    let isTipping = false;
+    let camMode = 0;
+    let digShakeTimer = 0;
+    let smokeTimer = 0;
+
+    const mState = {
+        x: -8, z: 16, rotY: 0,
+        pitch: 0, roll: 0,
+        speed: 0, steerAngle: 0,
+        fArm: 0.05, fTilt: 0.0,
+        rSwing: 0.0, rBoom: 0.0, rStick: 0.0, rBucket: 0.0
+    };
+
+    const tState = {
+        x: -8, z: 4, rotY: 0,
+        pitch: 0, roll: 0,
+        speed: 0, steerAngle: 0
+    };
+
+    const driveBtns = { left: false, right: false, fwd: false, rev: false };
+
+    function bindDriveButton(btnId, keyName) {
+        const el = document.getElementById(btnId);
+        const setPressed = (val) => {
+            driveBtns[keyName] = val;
+            el.classList.toggle('pressed', val);
+        };
+        el.addEventListener('touchstart', e => { e.preventDefault(); setPressed(true); }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); setPressed(false); });
+        el.addEventListener('touchcancel', () => setPressed(false));
+        el.addEventListener('mousedown', () => setPressed(true));
+        el.addEventListener('mouseup', () => setPressed(false));
+        el.addEventListener('mouseleave', () => setPressed(false));
+    }
+
+    bindDriveButton('btn-left', 'left');
+    bindDriveButton('btn-right', 'right');
+    bindDriveButton('btn-fwd', 'fwd');
+    bindDriveButton('btn-rev', 'rev');
+
+    const joyLeft = { x: 0, y: 0 };
+    const joyRight = { x: 0, y: 0 };
+
+    function setupJoystick(zoneId, knobId, targetVec) {
+        const zone = document.getElementById(zoneId);
+        const knob = document.getElementById(knobId);
+        const maxDist = 35;
+        let activeTouchId = null;
+
+        function updatePos(clientX, clientY) {
+            const rect = zone.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            let dx = clientX - cx;
+            let dy = clientY - cy;
+            const dist = Math.hypot(dx, dy);
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            targetVec.x = dx / maxDist;
+            targetVec.y = dy / maxDist;
+        }
+
+        zone.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const t = e.changedTouches[0];
+            activeTouchId = t.identifier;
+            updatePos(t.clientX, t.clientY);
+        }, { passive: false });
+
+        zone.addEventListener('touchmove', e => {
+            e.preventDefault();
+            for (let t of e.changedTouches) {
+                if (t.identifier === activeTouchId) updatePos(t.clientX, t.clientY);
+            }
+        }, { passive: false });
+
+        const resetJoy = e => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === activeTouchId) {
+                    activeTouchId = null;
+                    knob.style.transform = `translate(0px, 0px)`;
+                    targetVec.x = 0;
+                    targetVec.y = 0;
+                }
+            }
+        };
+        zone.addEventListener('touchend', resetJoy);
+        zone.addEventListener('touchcancel', resetJoy);
+    }
+
+    setupJoystick('joy-left', 'knob-left', joyLeft);
+    setupJoystick('joy-right', 'knob-right', joyRight);
+
+    let camYaw = 0.55;
+    let camPitch = 0.4;
+    let isDraggingCam = false;
+    let prevTouchX = 0, prevTouchY = 0;
+
+    renderer.domElement.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            isDraggingCam = true;
+            prevTouchX = e.touches[0].clientX;
+            prevTouchY = e.touches[0].clientY;
+        }
+    });
+    renderer.domElement.addEventListener('touchmove', e => {
+        if (isDraggingCam && e.touches.length === 1) {
+            const dx = e.touches[0].clientX - prevTouchX;
+            const dy = e.touches[0].clientY - prevTouchY;
+            camYaw -= dx * 0.007;
+            camPitch = Math.max(0.14, Math.min(1.18, camPitch + dy * 0.006));
+            prevTouchX = e.touches[0].clientX;
+            prevTouchY = e.touches[0].clientY;
+        }
+    });
+    renderer.domElement.addEventListener('touchend', () => isDraggingCam = false);
+
+    const btnSwitch = document.getElementById('btn-switch');
+    const btnMode = document.getElementById('btn-mode');
+    const btnBucketSide = document.getElementById('btn-bucket-side');
+    const btnDump = document.getElementById('btn-dump');
+    const btnRoller = document.getElementById('btn-roller');
+    const btnCam = document.getElementById('btn-cam');
+    const steerPad = document.getElementById('steer-pad');
+    const throttlePad = document.getElementById('throttle-pad');
+    const bucketLeftPad = document.getElementById('bucket-left-pad');
+    const bucketRightPad = document.getElementById('bucket-right-pad');
+    const lblLeft = document.getElementById('lbl-left');
+    const lblRight = document.getElementById('lbl-right');
+
+    function updateBucketAttachment() {
+        if (activeArm === 'FRONT') {
+            frontBucketGroup.add(bucketSoilGroup);
+            bucketSoilGroup.position.set(0, 0.05, 0.05);
+            bucketSoilGroup.scale.set(2.1, Math.max(0.01, machineSoil / 100), 1.15);
+            lblLeft.innerText = 'FRONT ARM UP/DN';
+            lblRight.innerText = 'FRONT BUCKET TILT';
+        } else {
+            rearBucketGroup.add(bucketSoilGroup);
+            bucketSoilGroup.position.set(0, -0.05, -0.04);
+            bucketSoilGroup.scale.set(0.75, Math.max(0.01, machineSoil / 100), 0.75);
+            lblLeft.innerText = 'SWING / REAR BOOM';
+            lblRight.innerText = 'STICK / BUCKET';
+        }
+    }
+
+    function updateControlUI() {
+        const showDriveButtons = (activeVehicle === 'TRUCK') || (activeVehicle === 'MACHINE' && controlMode === 'DRIVE');
+
+        steerPad.style.display = showDriveButtons ? 'flex' : 'none';
+        throttlePad.style.display = showDriveButtons ? 'flex' : 'none';
+        bucketLeftPad.style.display = showDriveButtons ? 'none' : 'flex';
+        bucketRightPad.style.display = showDriveButtons ? 'none' : 'flex';
+
+        if (activeVehicle === 'MACHINE') {
+            btnSwitch.innerText = '🔄 Switch: TRUCK';
+            btnMode.style.display = 'inline-block';
+            btnBucketSide.style.display = 'inline-block';
+            btnRoller.style.display = 'inline-block';
+            btnDump.innerText = '⬇️ DUMP SAND';
+            btnBucketSide.innerText = activeArm === 'FRONT' ? '🪣 ARM: FRONT' : '🦾 ARM: REAR';
+
+            if (controlMode === 'DRIVE') {
+                btnMode.innerText = '🪣 MODE: BUCKET';
+                btnMode.style.background = 'linear-gradient(135deg, #38bdf8, #0284c7)';
+            } else {
+                btnMode.innerText = '⚙️ MODE: DRIVE';
+                btnMode.style.background = 'linear-gradient(135deg, #f59e0b, #b45309)';
+            }
+        } else {
+            btnSwitch.innerText = '🔄 Switch: MACHINE';
+            btnMode.style.display = 'none';
+            btnBucketSide.style.display = 'none';
+            btnRoller.style.display = 'none';
+            btnDump.innerText = '⬆️ TIP & UNLOAD';
+        }
+        updateBucketAttachment();
+    }
+
+    btnSwitch.addEventListener('click', () => {
+        activeVehicle = activeVehicle === 'MACHINE' ? 'TRUCK' : 'MACHINE';
+        driveBtns.left = driveBtns.right = driveBtns.fwd = driveBtns.rev = false;
+        updateControlUI();
+        showToast(activeVehicle === 'TRUCK' ? '🚛 Driving Dump Truck' : '🚜 Operating Machine');
+    });
+
+    btnBucketSide.addEventListener('click', () => {
+        activeArm = activeArm === 'FRONT' ? 'REAR' : 'FRONT';
+        updateControlUI();
+        showToast(activeArm === 'FRONT' ? '🪣 Front Loader Bucket Selected' : '🦾 Rear Excavator Arm Selected');
+    });
+
+    btnMode.addEventListener('click', () => {
+        controlMode = controlMode === 'DRIVE' ? 'BUCKET' : 'DRIVE';
+        driveBtns.left = driveBtns.right = driveBtns.fwd = driveBtns.rev = false;
+        updateControlUI();
+    });
+
+    btnRoller.addEventListener('click', () => {
+        roadLevelerActive = !roadLevelerActive;
+        btnRoller.innerText = roadLevelerActive ? '🛣️ Road Leveler: ON' : '🛣️ Road Leveler: OFF';
+        btnRoller.classList.toggle('active', roadLevelerActive);
+        if (roadLevelerActive) {
+            activeArm = 'FRONT';
+            mState.fArm = -0.14;
+            mState.fTilt = 0.14;
+            updateControlUI();
+        }
+    });
+
+    const camLabels = ['🎥 Cam: MAIN', '🎥 Cam: FRONT', '🎥 Cam: REAR'];
+    btnCam.addEventListener('click', () => {
+        camMode = (camMode + 1) % 3;
+        btnCam.innerText = camLabels[camMode];
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        initTerrain();
+        buildTreesAndRocks();
+        mState.x = -8; mState.z = 16; mState.speed = 0; mState.pitch = 0; mState.roll = 0;
+        tState.x = -8; tState.z = 4; tState.speed = 0; tState.pitch = 0; tState.roll = 0;
+        machineSoil = 0;
+        truckSoil = 0;
+        showToast('🔄 Map & Vehicles Reset');
+    });
+
+    btnDump.addEventListener('click', () => {
+        if (activeVehicle === 'MACHINE') {
+            if (machineSoil <= 5) {
+                showToast('⚠️ Bucket khali hai! Pehle sand/soil uthayein.');
+                return;
+            }
+            const activeBucketGroup = activeArm === 'FRONT' ? frontBucketGroup : rearBucketGroup;
+            const worldTip = new THREE.Vector3();
+            activeBucketGroup.getWorldPosition(worldTip);
+
+            const truckBedWorld = new THREE.Vector3();
+            bedFloor.getWorldPosition(truckBedWorld);
+            const distToBed = Math.hypot(worldTip.x - truckBedWorld.x, worldTip.z - truckBedWorld.z);
+
+            if (distToBed < 3.6) {
+                const added = machineSoil * 0.35;
+                truckSoil = Math.min(100, truckSoil + added);
+                spawnFallingSandStream(worldTip, 18, 0, 0, 0.8);
+                machineSoil = 0;
+                showToast(`🚛 Sand Loaded into Truck! (${Math.round(truckSoil)}%)`);
+            } else {
+                const pileAmt = (machineSoil / 100) * 1.95;
+                spawnFallingSandStream(worldTip, 24, 3.4, pileAmt, 1.0);
+                machineSoil = 0;
+                showToast('⏳ Pouring Sand Pile...');
+            }
+        } else {
+            if (truckSoil <= 2) {
+                showToast('⚠️ Truck khali hai! Machine se sand load karein.');
+                return;
+            }
+            isTipping = true;
+            const dumpAmt = (truckSoil / 100) * 3.6;
+            truckSoil = 0;
+
+            [350, 650, 950].forEach(delay => {
+                setTimeout(() => {
+                    const rearDropPos = new THREE.Vector3(0, 1.35, -3.4);
+                    truck.localToWorld(rearDropPos);
+                    spawnFallingSandStream(rearDropPos, 16, 4.3, dumpAmt / 3, 1.5);
+                }, delay);
+            });
+
+            showToast('⬆️ Tipping Sand Load...');
+            setTimeout(() => { isTipping = false; }, 1350);
+        }
+    });
+
+    // --- 7. FAST LOCALIZED TERRAIN DIGGING & PILE DEPOSITION ---
+    function modifyTerrainGranular(wx, wz, radius, deltaY, mode = 'DIG') {
+        const half = TERRAIN_SIZE / 2;
+        const step = TERRAIN_SIZE / SEGMENTS;
+        const minGx = Math.max(0, Math.floor((wx - radius * 1.4 + half) / step));
+        const maxGx = Math.min(SEGMENTS, Math.ceil((wx + radius * 1.4 + half) / step));
+        const minGz = Math.max(0, Math.floor((wz - radius * 1.4 + half) / step));
+        const maxGz = Math.min(SEGMENTS, Math.ceil((wz + radius * 1.4 + half) / step));
+
+        let changed = false;
+        let avgH = 0;
+        let count = 0;
+        const tempCol = new THREE.Color();
+        const sandGrainCol = new THREE.Color();
+
+        if (mode === 'ROAD') {
+            for (let gz = minGz; gz <= maxGz; gz++) {
+                for (let gx = minGx; gx <= maxGx; gx++) {
+                    avgH += posAttr.getY(gz * (SEGMENTS + 1) + gx);
+                    count++;
+                }
+            }
+            if (count > 0) avgH /= count;
+        }
+
+        for (let gz = minGz; gz <= maxGz; gz++) {
+            for (let gx = minGx; gx <= maxGx; gx++) {
+                const idx = gz * (SEGMENTS + 1) + gx;
+                const vx = posAttr.getX(idx);
+                const vz = posAttr.getZ(idx);
+                const dist = Math.hypot(vx - wx, vz - wz);
+                const grainNoise = 0.72 + vertexGrain[idx] * 0.56;
+                let vertexModified = false;
+
+                if (mode === 'ROAD' && dist < radius) {
+                    const falloff = Math.cos((dist / radius) * (Math.PI / 2));
+                    const curY = posAttr.getY(idx);
+                    if (curY >= WATER_LEVEL - 0.1) {
+                        posAttr.setY(idx, THREE.MathUtils.lerp(curY, avgH, 0.34 * falloff));
+                        if (dist < radius * 0.88) {
+                            roadMask[idx] = 1;
+                            disturbedSandMask[idx] = 0;
+                        }
+                        vertexModified = true;
+                    }
+                } else if (mode === 'PILE' && dist < radius) {
+                    const coneFactor = Math.pow(1 - dist / radius, 1.25) * grainNoise;
+                    const curY = posAttr.getY(idx);
+                    posAttr.setY(idx, Math.min(62.0, curY + deltaY * coneFactor));
+                    disturbedSandMask[idx] = 1;
+                    roadMask[idx] = 0;
+                    vertexModified = true;
+                } else if (mode === 'DIG') {
+                    const curY = posAttr.getY(idx);
+                    let isBaseCaveZone = false;
+                    for (let k = 0; k < HILLS.length; k++) {
+                        const hObj = HILLS[k];
+                        const dH = Math.hypot(vx - hObj.x, vz - hObj.z);
+                        if (dH < hObj.radius + 3.0 && dH > hObj.radius * 0.55 && curY < 4.5) {
+                            isBaseCaveZone = true;
+                            break;
+                        }
+                    }
+
+                    if (dist < radius) {
+                        const bite = Math.pow(1 - dist / radius, 0.75) * grainNoise;
+                        if (isBaseCaveZone) {
+                            caveMask[idx] = Math.min(1, caveMask[idx] + 0.3 * bite);
+                            posAttr.setY(idx, Math.max(-4.2, curY + deltaY * 0.45 * bite));
+                        } else {
+                            posAttr.setY(idx, Math.max(-4.2, curY + deltaY * bite));
+                            caveMask[idx] = Math.max(0, caveMask[idx] - 0.12 * bite);
+                        }
+                        disturbedSandMask[idx] = 1;
+                        roadMask[idx] = 0;
+                        vertexModified = true;
+                    } else if (dist < radius * 1.32 && !isBaseCaveZone) {
+                        const rimT = 1 - Math.abs(dist - radius * 1.12) / (radius * 0.22);
+                        if (rimT > 0) {
+                            posAttr.setY(idx, curY + Math.abs(deltaY) * 0.24 * rimT * grainNoise);
+                            disturbedSandMask[idx] = Math.min(1, disturbedSandMask[idx] + 0.5);
+                            vertexModified = true;
+                        }
+                    }
+                }
+
+                if (vertexModified) {
+                    applyVertexColor(idx, tempCol, sandGrainCol);
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            terrainGeo.attributes.color.needsUpdate = true;
+            terrainGeo.computeVertexNormals();
+            posAttr.needsUpdate = true;
+        }
+    }
+
+    // --- 8. 4-POINT GROUND ALIGNMENT ---
+    function alignVehicleToGround(obj, state, halfLen, halfWid, dt) {
+        const sinY = Math.sin(state.rotY);
+        const cosY = Math.cos(state.rotY);
+
+        const toWorld = (lx, lz) => [
+            state.x + lx * cosY + lz * sinY,
+            state.z - lx * sinY + lz * cosY
+        ];
+
+        const [fx, fz] = toWorld(0, halfLen);
+        const [bx, bz] = toWorld(0, -halfLen);
+        const [lx, lz] = toWorld(-halfWid, 0);
+        const [rx, rz] = toWorld(halfWid, 0);
+
+        const hCenter = getTerrainHeight(state.x, state.z);
+        const hFront = getTerrainHeight(fx, fz);
+        const hBack = getTerrainHeight(bx, bz);
+        const hLeft = getTerrainHeight(lx, lz);
+        const hRight = getTerrainHeight(rx, rz);
+
+        const targetY = (hCenter * 0.4 + (hFront + hBack) * 0.2 + (hLeft + hRight) * 0.1);
+        const targetPitch = -Math.atan2(hFront - hBack, halfLen * 2);
+        const targetRoll = Math.atan2(hRight - hLeft, halfWid * 2);
+
+        state.pitch = THREE.MathUtils.lerp(state.pitch, targetPitch, 10.5 * dt);
+        state.roll = THREE.MathUtils.lerp(state.roll, targetRoll, 10.5 * dt);
+
+        obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 15.0 * dt);
+        obj.position.x = state.x;
+        obj.position.z = state.z;
+
+        obj.rotation.order = 'YXZ';
+        obj.rotation.y = state.rotY;
+        obj.rotation.x = state.pitch;
+        obj.rotation.z = state.roll;
+    }
+
+    // --- 9. MAIN 60 FPS ANIMATION LOOP ---
+    const clock = new THREE.Clock();
+    const machineFillEl = document.getElementById('machine-fill');
+    const machinePctEl = document.getElementById('machine-pct');
+    const truckFillEl = document.getElementById('truck-fill');
+    const truckPctEl = document.getElementById('truck-pct');
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.05);
+        const elapsed = clock.elapsedTime;
+
+        // Water shimmer & gentle waves
+        waterMesh.position.y = WATER_LEVEL + Math.sin(elapsed * 1.8) * 0.025;
+        waterRippleTex.offset.x += dt * 0.04;
+        waterRippleTex.offset.y += dt * 0.08;
+
+        // Drift clouds & pulse safety beacon
+        cloudsGroup.position.x = Math.sin(elapsed * 0.015) * 28;
+        matBeacon.emissiveIntensity = 0.8 + Math.sin(elapsed * 10) * 0.7;
+
+        const steerInput = (driveBtns.left ? 1 : 0) - (driveBtns.right ? 1 : 0);
+        const throttleInput = (driveBtns.fwd ? 1 : 0) - (driveBtns.rev ? 1 : 0);
+
+        if (activeVehicle === 'MACHINE') {
+            if (controlMode === 'DRIVE') {
+                const targetSpeed = throttleInput * 10.8;
+                mState.speed = THREE.MathUtils.lerp(mState.speed, targetSpeed, 8.0 * dt);
+                mState.steerAngle = THREE.MathUtils.lerp(mState.steerAngle, steerInput * 0.42, 9.5 * dt);
+
+                const revSign = mState.speed < -0.15 ? -1 : 1;
+                if (Math.abs(mState.speed) > 0.1) {
+                    mState.rotY += steerInput * 1.8 * revSign * dt;
+                }
+
+                const nextX = mState.x + Math.sin(mState.rotY) * mState.speed * dt;
+                const nextZ = mState.z + Math.cos(mState.rotY) * mState.speed * dt;
+
+                if (getTerrainHeight(nextX, nextZ) > WATER_LEVEL - 0.25) {
+                    mState.x = Math.max(-MAP_LIMIT, Math.min(MAP_LIMIT, nextX));
+                    mState.z = Math.max(-MAP_LIMIT, Math.min(MAP_LIMIT, nextZ));
+                } else {
+                    mState.speed *= 0.4;
+                }
+
+                wheelPivots.forEach(p => { p.rotation.y = mState.steerAngle; });
+                spinWheels.forEach(w => { w.rotation.x += mState.speed * dt * 1.38; });
+            } else {
+                mState.speed = THREE.MathUtils.lerp(mState.speed, 0, 10 * dt);
+                if (activeArm === 'FRONT') {
+                    mState.fArm = Math.max(-0.55, Math.min(0.65, mState.fArm - joyLeft.y * 1.25 * dt));
+                    mState.fTilt = Math.max(-0.75, Math.min(0.85, mState.fTilt + joyRight.y * 1.55 * dt));
+                } else {
+                    mState.rSwing -= joyLeft.x * 1.48 * dt;
+                    mState.rBoom = Math.max(-0.55, Math.min(0.65, mState.rBoom + joyLeft.y * 1.2 * dt));
+                    mState.rStick = Math.max(-0.65, Math.min(0.85, mState.rStick - joyRight.y * 1.4 * dt));
+                    mState.rBucket = Math.max(-0.85, Math.min(1.1, mState.rBucket - joyRight.x * 1.8 * dt));
+                }
+            }
+        } else {
+            const targetTSpeed = throttleInput * 13.0;
+            tState.speed = THREE.MathUtils.lerp(tState.speed, targetTSpeed, 7.0 * dt);
+            tState.steerAngle = THREE.MathUtils.lerp(tState.steerAngle, steerInput * 0.42, 9.5 * dt);
+
+            const revSign = tState.speed < -0.2 ? -1 : 1;
+            if (Math.abs(tState.speed) > 0.1) {
+                tState.rotY += steerInput * 1.6 * revSign * dt;
+            }
+
+            const nextTX = tState.x + Math.sin(tState.rotY) * tState.speed * dt;
+            const nextTZ = tState.z + Math.cos(tState.rotY) * tState.speed * dt;
+
+            if (getTerrainHeight(nextTX, nextTZ) > WATER_LEVEL - 0.22) {
+                tState.x = Math.max(-MAP_LIMIT, Math.min(MAP_LIMIT, nextTX));
+                tState.z = Math.max(-MAP_LIMIT, Math.min(MAP_LIMIT, nextTZ));
+            } else {
+                tState.speed *= 0.4;
+            }
+
+            truckFrontPivots.forEach(p => { p.rotation.y = tState.steerAngle; });
+            truckSpinWheels.forEach(w => { w.rotation.x += tState.speed * dt * 1.65; });
+        }
+
+        alignVehicleToGround(machine, mState, 1.55, 1.35, dt);
+        alignVehicleToGround(truck, tState, 2.4, 1.25, dt);
+
+        // Exhaust smoke particles
+        smokeTimer += dt;
+        if (smokeTimer > 0.18) {
+            smokeTimer = 0;
+            const exPos = new THREE.Vector3();
+            exhaust.getWorldPosition(exPos);
+            exPos.y += 0.52;
+            spawnExhaustSmoke(exPos);
+        }
+
+        for (let i = smokePuffs.length - 1; i >= 0; i--) {
+            const p = smokePuffs[i];
+            p.position.addScaledVector(p.userData.vel, dt);
+            p.scale.addScalar(dt * 0.9);
+            p.userData.life -= dt * 0.95;
+            p.material.opacity = Math.max(0, p.userData.life * 0.35);
+            if (p.userData.life <= 0) {
+                scene.remove(p);
+                p.material.dispose();
+                smokePuffs.splice(i, 1);
+            }
+        }
+
+        frontArmPivot.rotation.x = mState.fArm;
+        frontBucketPivot.rotation.x = mState.fTilt;
+        rearSwingPivot.rotation.y = mState.rSwing;
+        rearBoomPivot.rotation.x = mState.rBoom;
+        rearStickPivot.rotation.x = mState.rStick;
+        rearBucketPivot.rotation.x = mState.rBucket;
+
+        const targetBedAngle = isTipping ? -0.68 : 0;
+        truckBedAngle = THREE.MathUtils.lerp(truckBedAngle, targetBedAngle, 0.12);
+        bedPivot.rotation.x = truckBedAngle;
+
+        const frontBucketWorld = new THREE.Vector3();
+        frontBucketGroup.getWorldPosition(frontBucketWorld);
+
+        const rearBucketWorld = new THREE.Vector3();
+        rearBucketGroup.getWorldPosition(rearBucketWorld);
+
+        const activeBucketWorld = activeArm === 'FRONT' ? frontBucketWorld : rearBucketWorld;
+        const terrainAtBucket = getTerrainHeight(activeBucketWorld.x, activeBucketWorld.z);
+
+        tipMarker.position.set(activeBucketWorld.x, Math.max(terrainAtBucket, WATER_LEVEL) + 0.06, activeBucketWorld.z);
+        tipMarker.visible = (activeVehicle === 'MACHINE');
+
+        if (activeVehicle === 'MACHINE' && roadLevelerActive && Math.abs(mState.speed) > 0.4) {
+            modifyTerrainGranular(frontBucketWorld.x, frontBucketWorld.z, 2.85, 0, 'ROAD');
+        }
+
+        let isCurrentlyDigging = false;
+        if (activeVehicle === 'MACHINE' && activeBucketWorld.y <= terrainAtBucket + 0.65 && machineSoil < 100) {
+            isCurrentlyDigging = true;
+            digShakeTimer += dt * 35;
+            modifyTerrainGranular(activeBucketWorld.x, activeBucketWorld.z, 2.35, -1.95 * dt, 'DIG');
+            machineSoil = Math.min(100, machineSoil + 42 * dt);
+
+            if (Math.random() < 0.55) {
+                spawnFallingSandStream(activeBucketWorld, 2, 0, 0, 0.9);
+            }
+        }
+
+        frontSandWave.visible = isCurrentlyDigging && (activeArm === 'FRONT');
+        if (frontSandWave.visible) {
+            frontSandWave.rotation.x += dt * 6.0;
+        }
+
+        const mRatio = machineSoil / 100;
+        bucketSoilGroup.scale.y = Math.max(0.01, mRatio * 1.15);
+        machineFillEl.style.width = `${Math.round(machineSoil)}%`;
+        machinePctEl.innerText = `${Math.round(machineSoil)}%`;
+
+        const tRatio = truckSoil / 100;
+        truckSoilGroup.scale.set(1, Math.max(0.01, tRatio * 1.15), 1);
+        truckFillEl.style.width = `${Math.round(truckSoil)}%`;
+        truckPctEl.innerText = `${Math.round(truckSoil)}%`;
+
+        for (let i = sandClumps.length - 1; i >= 0; i--) {
+            const c = sandClumps[i];
+            c.userData.vel.y -= 13.5 * dt;
+            c.position.addScaledVector(c.userData.vel, dt);
+            c.rotation.x += dt * 5;
+            c.rotation.z += dt * 4;
+            c.userData.life -= dt;
+
+            const groundH = getTerrainHeight(c.position.x, c.position.z);
+            if (c.position.y <= groundH + 0.12) {
+                if (c.userData.buildsPile) {
+                    modifyTerrainGranular(c.position.x, c.position.z, c.userData.pileRadius, c.userData.pileGain, 'PILE');
+                }
+                scene.remove(c);
+                sandClumps.splice(i, 1);
+            } else if (c.userData.life <= 0) {
+                scene.remove(c);
+                sandClumps.splice(i, 1);
+            }
+        }
+
+        const focusObj = activeVehicle === 'MACHINE' ? machine : truck;
+        skyDome.position.set(focusObj.position.x, 0, focusObj.position.z);
+        sunGroup.position.set(focusObj.position.x + 220, 290, focusObj.position.z + 160);
+
+        // Dynamic Shadow Camera Follow so shadows stay razor-sharp across entire 3x map
+        dirLight.position.set(focusObj.position.x + 85, focusObj.position.y + 125, focusObj.position.z + 65);
+        dirLight.target.position.copy(focusObj.position);
+        dirLight.target.updateMatrixWorld();
+
+        let targetPos = focusObj.position;
+        let camDist = activeVehicle === 'MACHINE' ? 15.2 : 17.8;
+
+        if (activeVehicle === 'MACHINE' && camMode === 1) {
+            targetPos = frontBucketWorld;
+            camDist = 7.6;
+        } else if (activeVehicle === 'MACHINE' && camMode === 2) {
+            targetPos = rearBucketWorld;
+            camDist = 7.9;
+        }
+
+        const shakeOffset = isCurrentlyDigging ? Math.sin(digShakeTimer) * 0.045 : 0;
+
+        const desiredCamX = targetPos.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist;
+        const desiredCamZ = targetPos.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist;
+        const desiredCamY = targetPos.y + Math.sin(camPitch) * camDist + 1.8 + shakeOffset;
+
+        camera.position.lerp(new THREE.Vector3(desiredCamX, desiredCamY, desiredCamZ), 0.13);
+        camera.lookAt(targetPos.x, targetPos.y + 1.3, targetPos.z);
+
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    updateControlUI();
+    animate();
+</script>
+</body>
+</html>
